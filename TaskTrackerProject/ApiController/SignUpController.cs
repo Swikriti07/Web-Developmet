@@ -94,6 +94,27 @@ namespace TaskTrackerProject.ApiController
                 return Ok(new { Status = false, Message = "Failed to update user" });
             }
         }
+    
+       [HttpPost("login")]
+       public async Task<IActionResult> login([FromBody] Signup model)
+        {
+            try
+            {
+             var userExist= await _appDbContext.Signups.AnyAsync(x=>x.Email==model.Email && x.Password==model.Password);
+                if (userExist)
+                {
+                    return Ok(new{Status=true, Message="Login successful"});
+                }
+                else
+                {
+                    return Ok(new{Status=false,Message="Invalid email or password"});
+                }  
+            }
+            catch(Exception ex)
+            {
+               return Ok(new{Status=false, Message="Login failed", Error=ex.Message}); 
+            }
+        }
     }
 
 

@@ -12,5 +12,10 @@ namespace TaskTrackerProject.ApplicationDBContext
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
   public DbSet<Signup> Signups { get; set; }
-}
+  public DbSet<Ticket> Tickets { get; set; }
+
+        internal class appDbContext
+        {
+        }
+    }
 }
