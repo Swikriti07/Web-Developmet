@@ -1,5 +1,3 @@
-
-
 <style>
 
     body {
@@ -94,6 +92,40 @@
             border-color: #6a11cb;
             box-shadow: 0 0 0 0.2rem rgba(106, 17, 203, 0.15);
         }
+
+    /* Multi-select user list — Bootstrap's .form-select is meant for
+       single-line selects and adds a chevron/appearance that breaks
+       the look of a real multi-select listbox. Style it manually
+       instead so it renders and behaves as a proper listbox. */
+    .user-multiselect {
+    width: 100%;
+    border: 1px solid #dfe3ec;
+    border-radius: 10px;
+    padding: 0.4rem;
+    font-size: 0.95rem;
+}
+
+    .user-multiselect:focus {
+        outline: none;
+        border-color: #6a11cb;
+        box-shadow: 0 0 0 0.2rem rgba(106, 17, 203, 0.15);
+    }
+
+    .user-multiselect option {
+        padding: 0.45rem 0.6rem;
+        border-radius: 6px;
+    }
+
+        .user-multiselect option:checked {
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            color: #fff;
+        }
+
+.user-select-hint {
+    font-size: 0.78rem;
+    color: #6c757d;
+    margin-top: 0.4rem;
+}
 
     .table thead {
         background: #f5f6fa;
@@ -204,18 +236,18 @@
                 <div class="col-md-3">
                     <select id="ddlFilterStatus" class="form-select" onchange="renderTasks()">
                         <option value="">All Status</option>
-                        <option value="Pending">Pending</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Completed">Completed</option>
+                        <option value="0">Pending</option>
+                        <option value="1">In Progress</option>
+                        <option value="2">Completed</option>
                     </select>
                 </div>
 
                 <div class="col-md-3">
                     <select id="ddlFilterPriority" class="form-select" onchange="renderTasks()">
                         <option value="">All Priority</option>
-                        <option value="High">High</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Low">Low</option>
+                        <option value="0">Low</option>
+                        <option value="1">Medium</option>
+                        <option value="2">High</option>
                     </select>
                 </div>
 
@@ -241,6 +273,7 @@
                         <th>Description</th>
                         <th>Priority</th>
                         <th>Status</th>
+                        <th>User</th>
                         <th>Due Date</th>
                         <th width="220">Action</th>
                     </tr>
@@ -286,22 +319,30 @@
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Priority</label>
                         <select id="ddlPriority" class="form-select">
-                            <option value=0>Low</option>
-                            <option value=1 selected>Medium</option>
-                            <option value=2>High</option>
+                            <option value="0">Low</option>
+                            <option value="1" selected>Medium</option>
+                            <option value="2">High</option>
                         </select>
                     </div>
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Status</label>
                         <select id="ddlStatus" class="form-select">
-                            <option value=0>Pending</option>
-                            <option value=1>In Progress</option>
-                            <option value=2>Completed</option>
+                            <option value="0">Pending</option>
+                            <option value="1">In Progress</option>
+                            <option value="2">Completed</option>
                         </select>
                     </div>
 
                 </div>
+
+                <div class="mb-3">
+    <label class="form-label">Assign Users</label>
+    <select id="ddlUser" class="user-multiselect" multiple size="5"></select>
+    <div class="user-select-hint">
+        Hold Ctrl (Windows) or Cmd (Mac) and click to select multiple users.
+    </div>
+</div>
 
                 <div class="mb-3">
                     <label class="form-label">Due Date</label>
@@ -326,6 +367,7 @@
     <script>
 
         var tasks = [];
+        var users = [];
         var taskModal;
 
         $(document).ready(function () {
@@ -335,6 +377,30 @@
             getTasks();
 
         });
+
+        // ---------- HELPERS ----------
+
+        // Returns an array of user id strings assigned to a task,
+        // regardless of which shape the API sends them back in.
+        function getAssignedUserIds(item) {
+
+            if (Array.isArray(item.userIds)) {
+                return item.userIds.map(String);
+            }
+
+            if (Array.isArray(item.ticketUser)) {
+                return item.ticketUser.map(function (tu) {
+                    return String(tu.userId != null ? tu.userId : tu.UserId);
+                });
+            }
+
+            if (item.userId != null) {
+                return [String(item.userId)];
+            }
+
+            return [];
+
+        }
 
         // ---------- CRUD OPERATIONS ----------
 
@@ -351,12 +417,12 @@
             })
             .then(response => response.json())
             .then(data => {
-                debugger;
 
                 if (data.status) {
 
                     tasks = data.data;
-
+                    users = data.userData;
+                    loadUsers();
                     renderTasks();
 
                 }
@@ -376,13 +442,13 @@
         }
 
         function openAddModal() {
-            
 
             $("#txtTaskId").val("");
             $("#txtTitle").val("");
             $("#txtDescription").val("");
-            $("#ddlPriority").val("Medium");
-            $("#ddlStatus").val("Pending");
+            $("#ddlPriority").val("1");
+            $("#ddlStatus").val("0");
+            $("#ddlUser").val([]);
             $("#txtDueDate").val("");
 
             $("#modalTitle").html("<i class='bi bi-plus-circle me-2'></i>Add Task");
@@ -403,9 +469,17 @@
             $("#ddlPriority").val(item.priority);
             $("#ddlStatus").val(item.status);
 
+            var assignedIds = getAssignedUserIds(item);
+            $("#ddlUser").val(assignedIds);
+
             if (item.dueDate != null) {
 
                 $("#txtDueDate").val(item.dueDate.substring(0, 10));
+
+            }
+            else {
+
+                $("#txtDueDate").val("");
 
             }
 
@@ -418,54 +492,65 @@
 
         function saveTask() {
 
-    var title = $("#txtTitle").val();
+            var title = $("#txtTitle").val();
 
-    if (title == "") {
-        alert("Title is required");
-        return;
-    }
+            if (title == "") {
+                alert("Title is required");
+                return;
+            }
 
-    var isUpdate = $("#txtTaskId").val() != "";
+            var selectedUserIds = $("#ddlUser").val(); // array of selected ids, e.g. ["guid1","guid2"]
 
-    var model = {
-        Title: title,
-        Description: $("#txtDescription").val(),
-        Priority: parseInt($("#ddlPriority").val()),
-        Status: parseInt($("#ddlStatus").val()),
-        DueDate: $("#txtDueDate").val()
-    };
+            if (selectedUserIds == null || selectedUserIds.length === 0) {
+                alert("Please assign at least one user");
+                return;
+            }
 
-    if (isUpdate) {
-        model.Id = $("#txtTaskId").val();
-    }
+            var isUpdate = $("#txtTaskId").val() != "";
 
-    fetch(isUpdate ? '/api/ticket/update' : '/api/ticket/add', {
+            var model = {
+                Title: title,
+                Description: $("#txtDescription").val(),
+                Priority: parseInt($("#ddlPriority").val()),
+                Status: parseInt($("#ddlStatus").val()),
+                ticketUser: selectedUserIds.map(function (uid) {
+                    return { UserId: uid };
+                }),
+                DueDate: $("#txtDueDate").val() || null
+            };
 
-        method: 'POST',
+            if (isUpdate) {
+                model.Id = $("#txtTaskId").val();
+            }
 
-        headers: {
-            'Content-Type': 'application/json'
-        },
+            fetch(isUpdate ? '/api/ticket/update' : '/api/ticket/add', {
 
-        body: JSON.stringify(model)
+                method: 'POST',
 
-    })
-    .then(response => response.json())
-    .then(data => {
+                headers: {
+                    'Content-Type': 'application/json'
+                },
 
-        if (data.status) {
-            taskModal.hide();
-            getTasks();
+                body: JSON.stringify(model)
+
+            })
+            .then(response => response.json())
+            .then(data => {
+
+                if (data.status) {
+                    taskModal.hide();
+                    getTasks();
+                }
+                else {
+                    alert(data.message);
+                }
+
+            })
+            .catch(() => {
+                alert("Unable to save the task.");
+            });
         }
-        else {
-            alert(data.message);
-        }
 
-    })
-    .catch(() => {
-        alert("Unable to save the task.");
-    });
-}
         function updateStatus(id, newStatus) {
 
             var model = {
@@ -474,6 +559,42 @@
             };
 
             fetch('/api/ticket/updateStatus', {
+
+                method: 'POST',
+
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+
+                body: JSON.stringify(model)
+
+            })
+            .then(response => response.json())
+            .then(data => {
+
+                if (data.status) {
+
+                    getTasks();
+
+                }
+                else {
+
+                    alert(data.message);
+
+                }
+
+            });
+
+        }
+
+        function updatePriority(id, newPriority) {
+
+            var model = {
+                Id: id,
+                Priority: newPriority
+            };
+
+            fetch('/api/ticket/updatePriority', {
 
                 method: 'POST',
 
@@ -556,16 +677,23 @@
 
                 var dueDate = item.dueDate != null ? item.dueDate.substring(0, 10) : "-";
 
-                var priorityBadge = "badge-priority-" + item.priority;
-                var statusBadge = "badge-status-" + item.status;
+                var assignedIds = getAssignedUserIds(item);
+
+                var userNamesDisplay = assignedIds.map(function (uid) {
+                    var matchedUser = users.find(u => String(u.id) == uid);
+                    return matchedUser ? matchedUser.name : uid;
+                }).join(", ");
+
+                if (!userNamesDisplay) userNamesDisplay = "-";
+
                 var rowClass = item.status == 2 ? "task-row-completed" : "";
 
-             var priorityDropdown =
-              "<select class='form-select form-select-sm' style='width:130px; display:inline-block;' onchange='updatePriority(\"" + item.id + "\", this.value)'>" +
-               "<option value='0'" + (item.priority == 0 ? " selected" : "") + ">Low</option>" +
-                "<option value='1'" + (item.priority == 1 ? " selected" : "") + ">Medium</option>" +
-                 "<option value='2'" + (item.priority == 2 ? " selected" : "") + ">High</option>" +
-                 "</select>";
+                var priorityDropdown =
+                    "<select class='form-select form-select-sm' style='width:130px; display:inline-block;' onchange='updatePriority(\"" + item.id + "\", this.value)'>" +
+                    "<option value='0'" + (item.priority == 0 ? " selected" : "") + ">Low</option>" +
+                    "<option value='1'" + (item.priority == 1 ? " selected" : "") + ">Medium</option>" +
+                    "<option value='2'" + (item.priority == 2 ? " selected" : "") + ">High</option>" +
+                    "</select>";
 
                 var statusDropdown =
                     "<select class='form-select form-select-sm' style='width:130px; display:inline-block;' onchange='updateStatus(\"" + item.id + "\", this.value)'>" +
@@ -582,6 +710,7 @@
                     "<td>" + (item.description || "") + "</td>" +
                     "<td>" + priorityDropdown + "</td>" +
                     "<td>" + statusDropdown + "</td>" +
+                    "<td>" + userNamesDisplay + "</td>" +
                     "<td>" + dueDate + "</td>" +
                     "<td>" +
                     "<button class='btn btn-warning btn-sm me-1' onclick='openEditModal(\"" + item.id + "\")'><i class='bi bi-pencil'></i></button>" +
@@ -600,9 +729,25 @@
         function updateStats() {
 
             $("#statTotal").text(tasks.length);
-            $("#statPending").text(tasks.filter(t => t.status == "Pending").length);
-            $("#statProgress").text(tasks.filter(t => t.status == "In Progress").length);
-            $("#statDone").text(tasks.filter(t => t.status == "Completed").length);
+            $("#statPending").text(tasks.filter(t => t.status == 0).length);
+            $("#statProgress").text(tasks.filter(t => t.status == 1).length);
+            $("#statDone").text(tasks.filter(t => t.status == 2).length);
+
+        }
+
+        function loadUsers() {
+
+            $("#ddlUser").empty();
+
+            $.each(users, function (i, user) {
+
+                $("#ddlUser").append(
+                    "<option value='" + user.id + "'>" +
+                    user.name +
+                    "</option>"
+                );
+
+            });
 
         }
 

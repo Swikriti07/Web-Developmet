@@ -13,9 +13,7 @@ namespace TaskTrackerProject.ApplicationDBContext
 
   public DbSet<Signup> Signups { get; set; }
   public DbSet<Ticket> Tickets { get; set; }
+  public DbSet<TicketUser> TicketUsers { get; set; }
 
-        internal class appDbContext
-        {
-        }
     }
 }
