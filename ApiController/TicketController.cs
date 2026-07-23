@@ -35,6 +35,8 @@ namespace TaskTrackerProject.ApiController
                     Description = model.Description,
                     Priority = model.Priority,
                     Status = model.Status,
+                    StoryPoints = model.StoryPoints,
+                    AssignedDate = model.AssignedDate,
                     DueDate = model.DueDate
                 };
 
@@ -97,6 +99,8 @@ namespace TaskTrackerProject.ApiController
                         t.Description,
                         t.Priority,
                         t.Status,
+                        t.StoryPoints,
+                        t.AssignedDate,
                         t.DueDate,
                         userIds = assignedUsers.Select(u => u.userId).ToList(),
                         ticketUser = assignedUsers
@@ -132,6 +136,8 @@ namespace TaskTrackerProject.ApiController
                 ticketData.Description = model.Description;
                 ticketData.Priority = model.Priority;
                 ticketData.Status = model.Status;
+                ticketData.StoryPoints = model.StoryPoints;
+                ticketData.AssignedDate = model.AssignedDate;
                 ticketData.DueDate = model.DueDate;
 
                 _appDbContext.Tickets.Update(ticketData);

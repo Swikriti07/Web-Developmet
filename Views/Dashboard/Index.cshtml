@@ -274,6 +274,8 @@
                         <th>Priority</th>
                         <th>Status</th>
                         <th>User</th>
+                        <th>Story Points</th>
+                        <th>Assigned Date</th>
                         <th>Due Date</th>
                         <th width="220">Action</th>
                     </tr>
@@ -337,12 +339,21 @@
                 </div>
 
                 <div class="mb-3">
-    <label class="form-label">Assign Users</label>
-    <select id="ddlUser" class="user-multiselect" multiple size="5"></select>
-    <div class="user-select-hint">
-        Hold Ctrl (Windows) or Cmd (Mac) and click to select multiple users.
-    </div>
-</div>
+                    <label class="form-label">Assign Users</label>
+                    <select id="ddlUser" class="user-multiselect" multiple size="5"></select>
+                    <div class="user-select-hint">
+                        Hold Ctrl (Windows) or Cmd (Mac) and click to select multiple users.
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Story Points</label>
+                    <input type="number" id="txtStoryPoints" class="form-control" placeholder="Story points" min="0" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Assigned Date</label>
+                    <input type="date" id="txtAssignedDate" class="form-control" />
+                </div>
 
                 <div class="mb-3">
                     <label class="form-label">Due Date</label>
@@ -371,10 +382,6 @@
         var taskModal;
 
         // ---------- AUTH HELPERS ----------
-        // Every call to /api/ticket/* requires [Authorize], so the JWT
-        // issued at login must be sent as a Bearer token on every request.
-        // Adjust the key name here if your login page stores it under a
-        // different localStorage key (or elsewhere).
         function getToken() {
             return localStorage.getItem("token");
         }
@@ -402,8 +409,6 @@
 
         // ---------- HELPERS ----------
 
-        // Returns an array of user id strings assigned to a task,
-        // regardless of which shape the API sends them back in.
         function getAssignedUserIds(item) {
 
             if (Array.isArray(item.userIds)) {
@@ -424,7 +429,6 @@
 
         }
 
-        // Handles the common case of a token being missing/expired mid-session.
         function handleAuthFailure(response) {
             if (response.status === 401) {
                 alert("Your session has expired. Please log in again.");
@@ -433,6 +437,16 @@
                 return true;
             }
             return false;
+        }
+
+        // Returns today's date as yyyy-MM-dd, used as a fallback when the
+        // date inputs are left empty (server-side DateTime fields are
+        // non-nullable, so we can't send null).
+        function todayString() {
+            var d = new Date();
+            var mm = String(d.getMonth() + 1).padStart(2, '0');
+            var dd = String(d.getDate()).padStart(2, '0');
+            return d.getFullYear() + '-' + mm + '-' + dd;
         }
 
         // ---------- CRUD OPERATIONS ----------
@@ -485,6 +499,8 @@
             $("#ddlPriority").val("1");
             $("#ddlStatus").val("0");
             $("#ddlUser").val([]);
+            $("#txtStoryPoints").val("");
+            $("#txtAssignedDate").val("");
             $("#txtDueDate").val("");
 
             $("#modalTitle").html("<i class='bi bi-plus-circle me-2'></i>Add Task");
@@ -504,19 +520,23 @@
             $("#txtDescription").val(item.description);
             $("#ddlPriority").val(item.priority);
             $("#ddlStatus").val(item.status);
+            $("#txtStoryPoints").val(item.storyPoints != null ? item.storyPoints : "");
 
             var assignedIds = getAssignedUserIds(item);
             $("#ddlUser").val(assignedIds);
 
-            if (item.dueDate != null) {
-
-                $("#txtDueDate").val(item.dueDate.substring(0, 10));
-
+            if (item.assignedDate != null) {
+                $("#txtAssignedDate").val(item.assignedDate.substring(0, 10));
             }
             else {
+                $("#txtAssignedDate").val("");
+            }
 
+            if (item.dueDate != null) {
+                $("#txtDueDate").val(item.dueDate.substring(0, 10));
+            }
+            else {
                 $("#txtDueDate").val("");
-
             }
 
             $("#modalTitle").html("<i class='bi bi-pencil-square me-2'></i>Edit Task");
@@ -535,7 +555,7 @@
                 return;
             }
 
-            var selectedUserIds = $("#ddlUser").val(); 
+            var selectedUserIds = $("#ddlUser").val();
 
             if (selectedUserIds == null || selectedUserIds.length === 0) {
                 alert("Please assign at least one user");
@@ -552,7 +572,9 @@
                 ticketUser: selectedUserIds.map(function (uid) {
                     return { UserId: uid };
                 }),
-                DueDate: $("#txtDueDate").val() || null
+                StoryPoints: parseInt($("#txtStoryPoints").val()) || 0,
+                AssignedDate: $("#txtAssignedDate").val() || todayString(),
+                DueDate: $("#txtDueDate").val() || todayString()
             };
 
             if (isUpdate) {
@@ -727,7 +749,9 @@
 
             $.each(filtered, function (index, item) {
 
+                var assignedDate = item.assignedDate != null ? item.assignedDate.substring(0, 10) : "-";
                 var dueDate = item.dueDate != null ? item.dueDate.substring(0, 10) : "-";
+                var storyPoints = item.storyPoints != null ? item.storyPoints : "-";
 
                 var assignedIds = getAssignedUserIds(item);
 
@@ -763,6 +787,8 @@
                     "<td>" + priorityDropdown + "</td>" +
                     "<td>" + statusDropdown + "</td>" +
                     "<td>" + userNamesDisplay + "</td>" +
+                    "<td>" + storyPoints + "</td>" +
+                    "<td>" + assignedDate + "</td>" +
                     "<td>" + dueDate + "</td>" +
                     "<td>" +
                     "<button class='btn btn-warning btn-sm me-1' onclick='openEditModal(\"" + item.id + "\")'><i class='bi bi-pencil'></i></button>" +

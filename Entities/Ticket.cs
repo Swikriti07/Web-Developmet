@@ -1,7 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace TaskTrackerProject.Entities
 {
@@ -11,8 +8,9 @@ namespace TaskTrackerProject.Entities
         public string Title { get; set; }
         public string Description { get; set; }
         public byte Priority { get; set; }
-        public byte Status { get; set; }    
-  
+        public byte Status { get; set; }
+        public int StoryPoints { get; set; }
+        public DateTime AssignedDate { get; set; }
         public DateTime DueDate { get; set; }
     }
 }

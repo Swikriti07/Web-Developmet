@@ -16,8 +16,10 @@ namespace TaskTrackerProject.Models
         public string Title { get; set; }
         public string Description { get; set; }
         public byte Priority { get; set; }
-        public byte Status { get; set; }    
-  
+        public byte Status { get; set; }
+
+        public int StoryPoints { get; set; }
+        public DateTime AssignedDate { get; set; }
         public DateTime DueDate { get; set; }
 
         public List<TicketUserModel> ticketUser{ get; set; } 
