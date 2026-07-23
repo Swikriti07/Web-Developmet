@@ -1,0 +1,19 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using TaskTrackerProject.Entities;
+
+namespace TaskTrackerProject.ApplicationDBContext
+{
+    public class AppDbContext : DbContext
+{
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+  public DbSet<Signup> Signups { get; set; }
+  public DbSet<Ticket> Tickets { get; set; }
+  public DbSet<TicketUser> TicketUsers { get; set; }
+
+    }
+}
